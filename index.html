@@ -149,6 +149,7 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
                 var wkt = regExp.exec( respons2['geometri']['wkt'] )[1]
                 var ost2 = wkt.split(/[\s]/)[0]
                 var nord2 = wkt.split(/[\s]/)[1]
+
                 vispunktdata( ost2, nord2, oppdaterUrlParams, true)
 
             }  else if (oppdaterUrlParams) {
@@ -533,10 +534,11 @@ function onLocationFound(e) {
     var latlon = e.latlng;
     utm33 = crs.projection.project( latlon );  
         
-    vispunktdata( utm33.x, utm33.y, true, false); 
+    // vispunktdata( utm33.x, utm33.y, true, false); 
+    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, true, true );
 
-//    L.marker(e.latlng).addTo(map)
-//        .bindPopup("Din posisjon med " + radius + "m usikkerhet").openPopup();
+    L.marker(e.latlng).addTo(map)
+        .bindPopup("Din posisjon med " + radius + "m usikkerhet").openPopup();
 
  //    L.circle(e.latlng, radius).addTo(map);
 }
@@ -587,7 +589,7 @@ valgtDato : Dato på format '2019-12-31'
     }
 
 // Går i sirkel her... 
-//     veglenke = hentvegsystemref( 'posisjon.json?ost=' + ost + '&nord='+nord, true, true, oppdaterUrl );
+     
 
 
 }
@@ -598,7 +600,9 @@ function onMapClick(e) {
     var latlon = e.latlng;
     utm33 = crs.projection.project( latlon );  
         
-    vispunktdata( utm33.x, utm33.y, true, false); 
+    // vispunktdata( utm33.x, utm33.y, true, false); 
+    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, true, true );
+
  
 }
 
