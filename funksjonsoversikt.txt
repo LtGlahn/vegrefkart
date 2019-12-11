@@ -1,0 +1,82 @@
+114:function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
+115-    /* Henter vegsystem-referanse  */
+116-    
+--
+124:    xhr2.onreadystatechange = function () {
+125-    
+126-         if (xhr2.readyState == 4 && xhr2.status == 200) {
+--
+161:function vegref_v2( param , oppdaterkart, oppdatervegref) {
+162-    /* Henter vegreferanse  */
+163-    
+--
+170:    xhr2.onreadystatechange = function () {
+171-    
+172-         if (xhr2.readyState == 4 && xhr2.status == 200) {
+--
+205:function gyldigvegsystemref( vegref ) {
+206-    /* Avgjør om det er gyldig vegsystemreferanse */
+207-    vegref = vegref.replace(/\s/g,'') 
+--
+218:function gyldigvegreferanse( vegref ) {
+219-    /* Avgjør om det er gyldig vegreferanse */
+220-    vegref = vegref.replace(/\s/g,'') 
+--
+231:function hentVegreferanse(hvaslags) {
+232-    /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
+233-       HELT SENTRAL, kalles både ved onload og ved knappeklikk */
+--
+324:        myMarkers.eachLayer(function(l){ myMarkers.removeLayer(l) } );
+325-        myMarkers.clearLayers(); 
+326-   }
+327:    if (map.hasLayer(myCircles)){ myMarkers.eachLayer(function(l){ myCircles.removeLayer(l)  } ) }
+328-//    if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
+329-
+--
+342:	xhr.onreadystatechange = function () {
+343-    
+344-         if (xhr.readyState == 4 && xhr.status == 200) {
+--
+506:function sjekkUrlParams() {
+507-/* Leser URL parametre ved oppstart  */
+508-
+--
+546:function getUrlParameter(url, parameter) {
+547-    // Henter parametre fra URL 
+548-    
+--
+556:function endreUrlParametre( params) {
+557-/* Oppdaterer URL parametre slik at den er a jour med de brukervalgene som er a jour
+558-    Legger også eksisterende URL til nettleser-historikken.
+--
+576:function setUrlParameter(url, key, value) {
+577-    // INTERN RUTINE, bruk endreUrlParametre
+578-
+--
+674:function lagPunktHistorikkTabell( jsondata, mindato) {
+675-    // GAMMEL, fjernes når det er trygt (og du har rappa relevant kode... )
+676-
+--
+706:function onLocationFound(e) {
+707-    // Internt for leaflet
+708-
+--
+733:function onLocationError(e) {
+734-    // Internt for leaflet
+735-
+--
+741:function vispunktdata( ost, nord, oppdaterUrl, sentrerKart, valgtDato) {
+742-/* Legger punktdata i kartet (og eventuelt oppdaterer nettleserens adressefelt)
+743-PARAMETRE: 
+--
+783:	xhr.onreadystatechange = function () {
+784-    
+785-         if (xhr.readyState == 4 && xhr.status == 200) {
+--
+853:function onMapClick(e) {
+854-
+855-    var latlon = e.latlng;
+--
+862:function laglenke_punktsok( X, Y, tekst, dato) {
+863-// Lager a href - element hvor lenkn til søk etter vegref-verdier i punkt X,Y og teksten "tekst"
+864-// hvor mindato fremheves 

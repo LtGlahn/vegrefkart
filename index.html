@@ -130,7 +130,7 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
                 respons2 = respons2[0]
             }
 
-            var tmp = respons2['vegsystemreferanse']['kortform']; 
+            var tmp = respons2['vegsystemreferanse']['kortform'].replace(/\s/g,'') ; 
             
             console.log( tmp); 
         
@@ -143,11 +143,16 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
             if (oppdatervegref) { 
                 var junk = vegref_v2( 'veg.json?veglenke=' + veglenke, false, false, false  ); 
             }
-            // Rutiner for å oppdatere kart! Coming soon... 
+            // Rutiner for å oppdatere kart! Coming soon...
+            if (oppdaterkart) {
+                var regExp = /\(([^)]+)\)/;
+                var wkt = regExp.exec( respons2['geometri']['wkt'] )[1]
+                var ost2 = wkt.split(/[\s]/)[0]
+                var nord2 = wkt.split(/[\s]/)[1]
+                vispunktdata( ost2, nord2, oppdaterUrlParams, true)
 
-            if (oppdaterUrlParams) {
+            }  else if (oppdaterUrlParams) {
                 endreUrlParametre( { "vegsystemreferanse" : tmp } )
-
             }
 
             return veglenke;
@@ -286,35 +291,18 @@ function hentVegreferanse(hvaslags) {
         
     } else if (hvaslags == 'urlparams') {
         var myUrl = window.location.href;
-        fylke       = parseInt( getUrlParameter( myUrl, "fylke")); 
-        kommune     = parseInt( getUrlParameter( myUrl, "kommune"));
-        vegkat      = getUrlParameter( myUrl, "vegkat").toUpperCase();
-        vegstatus   = getUrlParameter( myUrl, "vegstatus").toUpperCase();
-        vegnr       = parseInt( getUrlParameter( myUrl, "vegnr"));
-        hp          = parseInt( getUrlParameter( myUrl, "hp"));
-        meter       = parseInt( getUrlParameter( myUrl, "meter"));
-
 
         vegsystemreferanse  =  getUrlParameter( myUrl, "vegsystemreferanse");
         vegreferanse        = getUrlParameter( myUrl, "vegreferanse");
         dato                = getUrlParameter( myUrl, "dato");
 
-       oppdaterUrlParams = false; // SLETT 
+       oppdaterUrlParams = false; 
 
     }
     
     // Sikrer at dato er riktig formattert
     dato = formatterdato( dato); 
     
-    
-    // Sammendrag-tekst
-    var vegreftekst = fylke.toString().padStart(2,'0') + kommune.toString().padStart(2,'0') + ' ' +  
-                        vegkat.toUpperCase() + vegstatus.toLowerCase() + vegnr.toString() + 
-                        ' hp' + hp.toString() + ' m' + meter.toString(); 
-                        
-    var vegreftekst2 = fylke.toString().padStart(2,'0') + kommune.toString().padStart(2,'0') + 
-                        vegkat.toUpperCase() + vegstatus.toUpperCase() + vegnr.toString().padStart(5, '0' ) + 
-                        hp.toString().padStart(3, '0' ) +  meter.toString().padStart(5, '0' ); 
     
     map.closePopup();
     if (map.hasLayer(myMarkers)){ 
@@ -324,119 +312,10 @@ function hentVegreferanse(hvaslags) {
     if (map.hasLayer(myCircles)){ myMarkers.eachLayer(function(l){ myCircles.removeLayer(l)  } ) }
 //    if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
 
-    $("#bruksanvisning1").empty();
+ //    $("#bruksanvisning1").empty();
     
-    //var vegrefApi = 'https://python.ltglahn.no/vegreferanse?fylke='+fylke +
-    var vegrefApi = 'https://jansimple.pythonanywhere.com/vviwrapper/vegreferanse?fylke='+fylke +
-        '&kommune='+kommune + '&kat=' + vegkat + '&stat=' + vegstatus + 
-        '&vegnr=' + vegnr + '&hp=' + hp + '&meter=' + meter + '&dato=' + dato + '&fjerndubletter=true';
-    
-    
-    console.log(vegrefApi); 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", vegrefApi, true);
-    xhr.send();
-	xhr.onreadystatechange = function () {
-    
-         if (xhr.readyState == 4 && xhr.status == 200) {
-            var respons = JSON.parse(xhr.responseText);
  
-            if (respons['features'].length === 0) {
-                $("#bruksanvisning1").empty();
-                console.log( "Ingen vegreferanse(r) funnet for " + vegreftekst ); 
-                $("#bruksanvisning1").append('<h2>Ugyldig vegreferanse: ' + vegreftekst +  '</h2>' );
-            } else { 
-
-                $("#bruksanvisning1").empty();
-                $("#bruksanvisning1").append('<h2>Resultater for ' + vegreftekst +  '</h2>' );
-
-                // Endrer URL: 
-                if (oppdaterUrlParams) {
-                    endreUrlParametre( {        
-                                            "dato"         : dato }); 
-                } else { 
-                // endrer input- og datofelt? 
-  
-                }
-                
-                
-                // Slår sammen features som har (tilnærmet) identisk posisjon:  
-                var myGeo = []; 
-                var tempGeo = []; 
-
-                for (index = 0; index < respons['features'].length; ++index) {
-                    var coords = JSON.parse( JSON.stringify( respons['features'][index]['geometry']['coordinates'] ));
-                    var props  = JSON.parse( JSON.stringify( respons['features'][index]['properties'] )) ;
-                    var mittNummer = index + 1; 
-                    props['visningsnummer'] = mittNummer.toString(); 
-                                        
-                    var x = Math.round( coords[0] * 100 ) / 100; 
-                    var y = Math.round( coords[1] * 100 ) / 100; 
-              
-                    var match = false; 
-                    
-                    tempGeo = []
-                    for (jj = 0; jj < myGeo.length; ++jj) {
-                        var tempResultat = JSON.parse( JSON.stringify( myGeo[jj])); 
-                        var dx = coords[0] - tempResultat['coords'][0]; 
-                        var dy = coords[1] - tempResultat['coords'][1]; 
-                        if (Math.abs(dx) < posisjonToleranseX && Math.abs(dy) < posisjonToleranseY) { 
-                                
-                            match = true; 
-                            tempResultat['props']['visningsnummer'] = tempResultat['props']['visningsnummer'].concat( ', ' +  mittNummer.toString()); 
-                            if (props['fremhev'].includes( 'fremhev' )) {
-                                tempResultat['props']['fremhev'] = JSON.parse( JSON.stringify( props['fremhev'] ) ); 
-                            }
-                               
-                        } 
-                        tempGeo.push( tempResultat ); 
-                    
-                    }
-                    // Ingen match mot gamle elementer? Føyer nye elementer til tempGeo - array 
-                    if (!match) { 
-                        tempGeo.push( { 'coords' : coords, 'props' : props } );
-                    }
-                    myGeo = JSON.parse( JSON.stringify( tempGeo)); 
-                    
-                }
-                if (map.hasLayer(myMarkers)){ map.removeLayer(myMarkers) }
-                if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
-                
-                
-                for (var ii = 0; ii < myGeo.length; ii++) {
-                
-                    var mittPunkt =  crs.projection.unproject( L.point( myGeo[ii]['coords'][0], myGeo[ii]['coords'][1] ));
-                    var minMarker = new L.Marker( mittPunkt)
-                    
-                    if ( myGeo[ii]['props']['fremhev'].includes( 'fremhev' ) ) {
-                        minMarker.bindTooltip( '<h3><font color="red">' + 
-                                                myGeo[ii]['props']['visningsnummer']  + '</font></h3>', 
-                                                { 'permanent' : true, 'direction' : 'right' } ); 
-                        
-                        <!-- var minSirkel = new L.circle( mittPunkt, { color : '#C02900',  -->
-                                <!-- fillColor: '#D19D1F', weigth : 15, fillOpacity:0, radius: 30 } ).addTo(myCircles);  -->
-                        
-                    } else if (myGeo[ii]['props']['fremhev'].includes( 'idag' )) {
-                        minMarker.bindTooltip( '<h3>' + myGeo[ii]['props']['visningsnummer'] + 
-                                                '</h3>', { 'permanent' : true, 'direction' : 'right' } ); 
-                    } else {
-                        minMarker.bindTooltip( myGeo[ii]['props']['visningsnummer'], 
-                                                { 'permanent' : true, 'direction' : 'right' } ); 
-
-                    }
-                    minMarker.addTo( myMarkers ); 
-                }
-                
-                
-                
-                myMarkers.addTo(map); 
-                // myCircles.addTo(map); 
-                map.fitBounds( myMarkers.getBounds());
-                map.zoomOut(); 
-                
-            }            
-        }
-     }
+    
 }
 
 
@@ -706,9 +585,9 @@ valgtDato : Dato på format '2019-12-31'
         '&nord='+nord + '&fjerndubletter=true';
     
     }
-    console.log(historikkApi);
 
-    veglenke = hentvegsystemref( 'posisjon.json?ost=' + ost + '&nord='+nord, true, true, false );
+// Går i sirkel her... 
+//     veglenke = hentvegsystemref( 'posisjon.json?ost=' + ost + '&nord='+nord, true, true, oppdaterUrl );
 
 
 }

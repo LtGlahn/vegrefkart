@@ -1,0 +1,171 @@
+      
+
+      if (respons['features'].length === 0) {
+                console.log( "Ingen veger her" + ost + " , ", + nord ); 
+                $("#bruksanvisning1").empty();
+                $("#bruksanvisning1").append('<h2>Ingen veger der du klikket</h2>' );
+
+            } else { 
+            
+                if (map.hasLayer(myMarkers)){ map.removeLayer(myMarkers) }
+                if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
+            
+                var coords = respons['features'][0]['geometry']['coordinates']
+                props = respons['features'][0]['properties']
+            
+                var mittPunkt =  crs.projection.unproject( L.point( coords[0], coords[1] ));
+
+                if (sentrerKart === true) {
+                    map.setView(mittPunkt, 10); 
+                }
+                
+                var kartklikkMarker =  L.popup();
+                kartklikkMarker
+                               .setLatLng( mittPunkt)
+                               .setContent( props['vegref'] ) 
+                               .openOn(map); 
+                // Oppdaterer nettleser adressefelt og historikk? 
+                if (oppdaterUrl === true) {
+                
+                    if (sjekkdato(mindato)) { 
+                        endreUrlParametre( { 'kartvisning' : 'posisjon', 
+                                            'ost' : coords[0], 'nord' : coords[1], 'dato' : mindato }); 
+                    } else {
+                        endreUrlParametre( { 'kartvisning' : 'posisjon', 
+                                            'ost' : coords[0], 'nord' : coords[1] }); 
+                    }
+                } else { 
+                    // Sjekker om vi har fornuftige URL-parametre for vegreferanseverdier. 
+                    // I så fall endrer vi valgene i "velg vegreferanseverdi" 
+                    // Unngår navnekollisjon med globale variabler
+                      var myUrl = window.location.href;
+                      var fylke2       = parseInt( getUrlParameter( myUrl, "fylke")); 
+                      var kommune2     = parseInt( getUrlParameter( myUrl, "kommune"));
+                      var vegkat2      = getUrlParameter( myUrl, "vegkat").toUpperCase();
+                      var vegstatus2   = getUrlParameter( myUrl, "vegstatus").toUpperCase();
+                      var vegnr2       = parseInt( getUrlParameter( myUrl, "vegnr"));
+                      var hp2          = parseInt( getUrlParameter( myUrl, "hp"));
+                      var meter2       = parseInt( getUrlParameter( myUrl, "meter"));
+                      
+                      if (!isNaN( fylke2        )) { $('#fylke').val(fylke2) } 
+                      if (!isNaN( kommune2      )) { $('#kommune').val(kommune2) } 
+                      if ( vegkat2.length == 1   ) { $('#vegkategori').val(vegkat2.toUpperCase()) }           
+                      if ( vegstatus2.length == 1   ) { $('#vegstatus').val(vegstatus2.toUpperCase()) }           
+                      if (!isNaN( vegnr2        )) { $('#vegnr').val(vegnr2) } 
+                      if (!isNaN( hp2           )) { $('#hp').val(hp2) } 
+                      if (!isNaN( meter2        )) { $('#meter').val(meter2) } 
+                
+                
+                }
+            }
+            
+###########################################
+
+var vegrefApi = 'https://jansimple.pythonanywhere.com/vviwrapper/vegreferanse?fylke='+fylke +
+        '&kommune='+kommune + '&kat=' + vegkat + '&stat=' + vegstatus + 
+        '&vegnr=' + vegnr + '&hp=' + hp + '&meter=' + meter + '&dato=' + dato + '&fjerndubletter=true';
+    
+        
+   var xhr = new XMLHttpRequest();
+    xhr.open("GET", vegrefApi, true);
+    xhr.send();
+	xhr.onreadystatechange = function () {
+    
+         if (xhr.readyState == 4 && xhr.status == 200) {
+            var respons = JSON.parse(xhr.responseText);
+ 
+            if (respons['features'].length === 0) {
+                $("#bruksanvisning1").empty();
+                console.log( "Ingen vegreferanse(r) funnet for " + vegreftekst ); 
+                $("#bruksanvisning1").append('<h2>Ugyldig vegreferanse: ' + vegreftekst +  '</h2>' );
+            } else { 
+
+                $("#bruksanvisning1").empty();
+                $("#bruksanvisning1").append('<h2>Resultater for ' + vegreftekst +  '</h2>' );
+
+                // Endrer URL: 
+                if (oppdaterUrlParams) {
+                    endreUrlParametre( {        
+                                            "dato"         : dato }); 
+                } else { 
+                // endrer input- og datofelt? 
+  
+                }
+                
+                
+                // Slår sammen features som har (tilnærmet) identisk posisjon:  
+                var myGeo = []; 
+                var tempGeo = []; 
+
+                for (index = 0; index < respons['features'].length; ++index) {
+                    var coords = JSON.parse( JSON.stringify( respons['features'][index]['geometry']['coordinates'] ));
+                    var props  = JSON.parse( JSON.stringify( respons['features'][index]['properties'] )) ;
+                    var mittNummer = index + 1; 
+                    props['visningsnummer'] = mittNummer.toString(); 
+                                        
+                    var x = Math.round( coords[0] * 100 ) / 100; 
+                    var y = Math.round( coords[1] * 100 ) / 100; 
+              
+                    var match = false; 
+                    
+                    tempGeo = []
+                    for (jj = 0; jj < myGeo.length; ++jj) {
+                        var tempResultat = JSON.parse( JSON.stringify( myGeo[jj])); 
+                        var dx = coords[0] - tempResultat['coords'][0]; 
+                        var dy = coords[1] - tempResultat['coords'][1]; 
+                        if (Math.abs(dx) < posisjonToleranseX && Math.abs(dy) < posisjonToleranseY) { 
+                                
+                            match = true; 
+                            tempResultat['props']['visningsnummer'] = tempResultat['props']['visningsnummer'].concat( ', ' +  mittNummer.toString()); 
+                            if (props['fremhev'].includes( 'fremhev' )) {
+                                tempResultat['props']['fremhev'] = JSON.parse( JSON.stringify( props['fremhev'] ) ); 
+                            }
+                               
+                        } 
+                        tempGeo.push( tempResultat ); 
+                    
+                    }
+                    // Ingen match mot gamle elementer? Føyer nye elementer til tempGeo - array 
+                    if (!match) { 
+                        tempGeo.push( { 'coords' : coords, 'props' : props } );
+                    }
+                    myGeo = JSON.parse( JSON.stringify( tempGeo)); 
+                    
+                }
+                if (map.hasLayer(myMarkers)){ map.removeLayer(myMarkers) }
+                if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
+                
+                
+                for (var ii = 0; ii < myGeo.length; ii++) {
+                
+                    var mittPunkt =  crs.projection.unproject( L.point( myGeo[ii]['coords'][0], myGeo[ii]['coords'][1] ));
+                    var minMarker = new L.Marker( mittPunkt)
+                    
+                    if ( myGeo[ii]['props']['fremhev'].includes( 'fremhev' ) ) {
+                        minMarker.bindTooltip( '<h3><font color="red">' + 
+                                                myGeo[ii]['props']['visningsnummer']  + '</font></h3>', 
+                                                { 'permanent' : true, 'direction' : 'right' } ); 
+                        
+                        <!-- var minSirkel = new L.circle( mittPunkt, { color : '#C02900',  -->
+                                <!-- fillColor: '#D19D1F', weigth : 15, fillOpacity:0, radius: 30 } ).addTo(myCircles);  -->
+                        
+                    } else if (myGeo[ii]['props']['fremhev'].includes( 'idag' )) {
+                        minMarker.bindTooltip( '<h3>' + myGeo[ii]['props']['visningsnummer'] + 
+                                                '</h3>', { 'permanent' : true, 'direction' : 'right' } ); 
+                    } else {
+                        minMarker.bindTooltip( myGeo[ii]['props']['visningsnummer'], 
+                                                { 'permanent' : true, 'direction' : 'right' } ); 
+
+                    }
+                    minMarker.addTo( myMarkers ); 
+                }
+                
+                
+                
+                myMarkers.addTo(map); 
+                // myCircles.addTo(map); 
+                map.fitBounds( myMarkers.getBounds());
+                map.zoomOut(); 
+                
+            }            
+        }
