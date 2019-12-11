@@ -131,11 +131,11 @@ btn.onclick = function() {
     
     if (gyldigvegsystemref(inputdata) ) {
         console.log( "Gyldig vegreferanse" + inputdata)
-        var veglenke = hentvegsystemref( 'vegsystemreferanse=' + inputdata, true, true); 
+        var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true); 
     
     } else if (gyldigvegreferanse(inputdata) ) {
         console.log( "Gyldig vegreferanse" + inputdata)
-        var veglenke = vegref_v2( 'vegreferanse=' + inputdata, true, true  ); 
+        var veglenke = vegref_v2( 'veg.json?vegreferanse=' + inputdata, true, true  ); 
         
     } else {
             if (inputdata.length == 0) {
@@ -150,8 +150,9 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
     /* Henter vegsystem-referanse  */
     
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?veglenke=" + 
-    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/veg.json?" + param
+    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/" + param
     
+    console.log ( veglenkeApi)
     var xhr2 = new XMLHttpRequest();
     xhr2.open("GET", veglenkeApi, true);
     xhr2.send();
@@ -159,6 +160,11 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
     
          if (xhr2.readyState == 4 && xhr2.status == 200) {
             var respons2 = JSON.parse(xhr2.responseText);
+
+            if (Array.isArray(respons2)) {
+                respons2 = respons2[0]
+            }
+
             var tmp = respons2['vegsystemreferanse']['kortform']; 
             
             console.log( tmp); 
@@ -170,7 +176,7 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
 
             // Henter vegreferanse? 
             if (oppdatervegref) { 
-                var junk = vegref_v2( 'veglenke=' + veglenke, false  ); 
+                var junk = vegref_v2( 'veg.json?veglenke=' + veglenke, false  ); 
             }
             // Rutiner for å oppdatere kart!
 
@@ -190,7 +196,7 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
 function vegref_v2( param , oppdaterkart, oppdatervegref) {
     /* Henter vegreferanse  */
     
-    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?" + param 
+    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/" + param 
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/veg.json?" + param
     
     var xhr2 = new XMLHttpRequest();
@@ -211,7 +217,7 @@ function vegref_v2( param , oppdaterkart, oppdatervegref) {
 
             // Oppdaterer vegsystemreferanse
             if (oppdatervegref) {
-                var junk = hentvegsystemref( 'veglenkesekvens=' + veglenke, false, false);
+                var junk = hentvegsystemref( 'veg.json?veglenkesekvens=' + veglenke, false, false);
             }
 
             // Rutiner for å oppdatere kart!
@@ -787,6 +793,9 @@ sentrerKart : boolean. Sentrerer kartet i angitt posisjon.
     
     }
     console.log(historikkApi);
+
+    hentvegsystemref( 'posisjon.json?ost=' + ost + '&nord='+nord, true, true );
+
     var xhr = new XMLHttpRequest();
     xhr.open("GET", historikkApi, true);
     xhr.send();
@@ -794,7 +803,7 @@ sentrerKart : boolean. Sentrerer kartet i angitt posisjon.
     
          if (xhr.readyState == 4 && xhr.status == 200) {
             var respons = JSON.parse(xhr.responseText);
-            lagPunktHistorikkTabell( respons, mindato); 
+            // lagPunktHistorikkTabell( respons, mindato); 
 
             if (respons['features'].length === 0) {
                 console.log( "Ingen veger her" + ost + " , ", + nord ); 
