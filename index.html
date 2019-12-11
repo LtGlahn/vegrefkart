@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
- <title>Historiske vegreferanser</title>
+ <title>Nytt og gammelt vegreferansesystem</title>
 
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,89 +26,40 @@
 </head>
 <body onload="sjekkUrlParams()" >
 
-<div id="datovelger"><h3>Dato som skal fremheves:</h3><input type="text" id="dato"><span id="datostatus" class="datoOK">&#10004;</span> </div>
-
-
 <div id="vegreferansevelger">
 
-<h3>Velg vegreferanseverdi</h3>
+<h3>Søk vegreferanseverdi</h3>
 
-<!-- <form> -->
+Skriv inn med ny eller gammel skrivemåte:<br> 
+<em>EV6 S68D1 m2541</em> eller  <em>5000 Ev6 hp11 m2668</em>
 
+<div id="inngangsverdier">
 <p>
-fylke:
-  <select name="fylke" id="fylke" value="8">
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4</option>
-    <option value="5">5</option>
-    <option value="6">6</option>
-    <option value="7">7</option>
-    <option value="8">8</option>
-    <option value="9">9</option>
-    <option value="10">10</option>
-    <option value="11">11</option>
-    <option value="12">12</option>
-    <option value="14">14</option>
-    <option value="15">15</option>
-    <option value="18">18</option>
-    <option value="19">19</option>
-    <option value="20">20</option>
-    <option value="50">50</option>
-  </select>
-
-  Kommune:
-  <input id="kommune" type="number" name="quantity" min="0" max="99" value="0">
-
-
-Vegkategori:
-  <select name="vegkategori" id="vegkategori" value="E">
-    <option value="E">E</option>
-    <option value="R">R</option>
-    <option value="F">F</option>
-    <option value="K">K</option>
-    <option value="P">P</option>
-    <option value="S">S</option>
-  </select>
-
-Vegstatus:
-  <select name="vegstatus" id="vegstatus" value="V">
-    <option value="V">V</option>
-    <option value="W">W</option>
-    <option value="T">T</option>
-    <option value="S">S</option>
-    <option value="G">G</option>
-    <option value="U">U</option>
-    <option value="B">B</option>
-    <option value="M">M</option>
-    <option value="X">X</option>
-    <option value="A">A</option>
-    <option value="H">H</option>
-    <option value="P">P</option>
-    <option value="E">E</option>
-    <option value="Q">Q</option>
-  </select>
-
-  Vegnr:
-  <input id="vegnr" type="number" name="quantity" min="1" max="999" value="18">
-  Hp:
-  <input id="hp" type="number" name="quantity" min="1" max="999" value="1">
-  Meter:
-  <input id="meter" type="number" name="quantity" min="0" max="99999" value="0">
-</p>
-<p>
-    <button class="myButton" onClick="hentVegreferanser('knappeklikk')" >Hent denne vegreferansen</button> 
-    <div class="unbreakable"><input type="checkbox" id="hentdagens"> Vis også dagens vegreferanse</div> 
-    <div class="unbreakable"><input type="checkbox" id="vegsystem">Vis vegsystemreferanse <em>(Før 4.11 kun internt hos vegvesenets datanett)</em></div>
+    <input type="text" id="inputvegref" size="35"> 
+    <button id="hovedknapp" class="myButton" " >Søk</button> 
+   
+    <button class="myButton2" onClick="hentHistoriskeVegreferanser('knappeklikk')" >Søk historisk verdi</button> 
+    <input type="text" id="dato"><span id="datostatus" class="datoOK">&#10004;</span>
+   
 </p>  
 
+
 </div>
+<div id="minmodal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <p><span id="feilmodaltekst">Ugyldig vegreferanse!</span></p>
+  </div>
+
+</div>
+
 
 <div id="map" class="map map-home" style="height: 40vh; width=100%;"></div>
 
 
-
+<!--
 <div id="bruksanvisning1"><h2>Kom i gang:</h2>
     <ul>
       <li>Knappen <em>Hent denne vegreferansen</em> viser hvordan den valgte vegreferansen har endret seg i tid og rom.</li>
@@ -118,22 +69,37 @@ Vegstatus:
 
     <p>Du kan også velge hvilken dato som skal <span class="fremhev">fremheves</span> spesielt</p>
 </div>
+-->
 
-<div id="resultater">
+<p><div id="FEIL"></div></p>
+
+<p><div id="vegsystemdata"></div></p>
+
+<p></p><div id="vegreferansedata"></div></p>
+
+<p></p><div id="historiskvegreferansedata"></div></p>
+
+
+<div id="resultater"> <!-- FJERNES -->
       <table id="vegreferanseTabell"
               class="table table-bordered
                      table-condensed">
        </table>
 </div> 
 
+
 <div id="egenposisjon">
     <p>
-    <button class="myButton"  onClick="map.locate( { setView : true, maxZoom: 14 } )">Hent vegreferanse i min posisjon</button>
+    <button class="myButton"  onClick="map.locate( { setView : true, maxZoom: 14 } )">Bruk min posisjon</button>
     </p>
 </div> 
 
+
+
+<!--
 <div>
 <h2><a href="tutorial.html">Brukerveiledning</a></h2>
+-->
 
 <!--
 <p>Denne tjenesten henter data fra Visveginfo-tjenesten, som sist ble oppdatert fra NVDB: <span id="sistoppdatert"><em>sjekker snart...</em></span>. 
@@ -155,15 +121,36 @@ var myCircles = L.featureGroup();
 
 
 
-function hentvegsystemref( props) {
-    /* Henter vegsystem-referanse. Kun TESTPROD foreløbig... */
+// Get the button that opens the modal
+var btn = document.getElementById("hovedknapp");
+
+btn.onclick = function() {
+
+    inputdata = $("#inputvegref").val(); 
+    console.log( "Inputdata: " + inputdata)
     
-    // Lager id for den cellen som skal holde verdien (når asynkront kall er ferdig) 
-    var vrefid = 'vsysref'.concat( props['visningsnummer'] ) 
+    if (gyldigvegsystemref(inputdata) ) {
+        console.log( "Gyldig vegreferanse" + inputdata)
+        var veglenke = hentvegsystemref( 'vegsystemreferanse=' + inputdata, true, true); 
+    
+    } else if (gyldigvegreferanse(inputdata) ) {
+        console.log( "Gyldig vegreferanse" + inputdata)
+        var veglenke = vegref_v2( 'vegreferanse=' + inputdata, true, true  ); 
+        
+    } else {
+            if (inputdata.length == 0) {
+                $("#FEIL").empty().append( "Skriv vegreferanse eller vegsystemreferanse i tekstfeltet til venstre for knappen"  ) 
+            } else {
+                $("#FEIL").empty().append(  "Ugyldig veg(system)referanse: " + inputdata )
+            }
+    }
+}
+
+function hentvegsystemref( param, oppdaterkart, oppdatervegref ) {
+    /* Henter vegsystem-referanse  */
     
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?veglenke=" + 
-    var veglenkeApi = "https://www.test.vegvesen.no/nvdb/api/v3/veg.json?veglenkesekvens=" + 
-                                props['veglenkeposisjon'] + '@' + props['veglenkeid'] ; 
+    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/veg.json?" + param
     
     var xhr2 = new XMLHttpRequest();
     xhr2.open("GET", veglenkeApi, true);
@@ -175,20 +162,102 @@ function hentvegsystemref( props) {
             var tmp = respons2['vegsystemreferanse']['kortform']; 
             
             console.log( tmp); 
+        
+            $("#FEIL").empty();
+            $("#vegsystemdata").empty().append( tmp ) 
+
+            var veglenke = respons2['veglenkesekvens']['kortform']; 
+
+            // Henter vegreferanse? 
+            if (oppdatervegref) { 
+                var junk = vegref_v2( 'veglenke=' + veglenke, false  ); 
+            }
+            // Rutiner for å oppdatere kart!
+
+            return veglenke;
             
-            $('#'.concat( vrefid)).text(  tmp ) ;  
-            
+         } else {
+            $("#vegsystemdata").empty()
+            $("#FEIL").empty().append( "Fant ingen vegsystemreferanse for angitt verdi"  )  
+            if (oppdatervegref) {
+                $("#vegreferansedata").empty()
+            }
+
          }
     }
-
-    
-    console.log( props) ; 
-         
-    var vr = '<div id="' + vrefid + '"></div>'  ; 
-    return vr; 
 }
 
-function hentVegreferanser(hvaslags) {
+function vegref_v2( param , oppdaterkart, oppdatervegref) {
+    /* Henter vegreferanse  */
+    
+    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?" + param 
+    // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/veg.json?" + param
+    
+    var xhr2 = new XMLHttpRequest();
+    xhr2.open("GET", veglenkeApi, true);
+    xhr2.send();
+    xhr2.onreadystatechange = function () {
+    
+         if (xhr2.readyState == 4 && xhr2.status == 200) {
+            var respons2 = JSON.parse(xhr2.responseText);
+            var tmp = respons2['vegreferanse']['kortform']; 
+            
+            console.log( tmp); 
+
+            $("#FEIL").empty()
+            $("#vegreferansedata").empty().append(  tmp ) 
+
+            var veglenke = respons2['veglenke']['kortform']; 
+
+            // Oppdaterer vegsystemreferanse
+            if (oppdatervegref) {
+                var junk = hentvegsystemref( 'veglenkesekvens=' + veglenke, false, false);
+            }
+
+            // Rutiner for å oppdatere kart!
+
+            return veglenke
+            
+         } else {
+            $("#vegreferansedata").empty()
+            $("#FEIL").empty().append( "Fant ingen vegreferanse for angitt verdi"  )  
+            if (oppdatervegref) {
+                $("#vegsystemdata").empty()
+            }
+
+         }
+    }
+}
+
+
+
+function gyldigvegsystemref( vegref ) {
+    /* Avgjør om det er gyldig vegsystemreferanse */
+    vegref = vegref.replace(/\s/g,'') 
+    vegkat = vegref.charAt(0).toLowerCase();  
+    if (  ["e", "r", "f", "k", "p", "s"].includes( vegkat) ) {
+        return true; 
+    } 
+
+
+    return false; 
+}
+
+
+function gyldigvegreferanse( vegref ) {
+    /* Avgjør om det er gyldig vegreferanse */
+    vegref = vegref.replace(/\s/g,'') 
+    if (parseInt(vegref.charAt(0))) { 
+
+        return true; 
+    }
+
+    return false; 
+}
+
+
+
+function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
     */
     var fylke = null;
@@ -199,6 +268,8 @@ function hentVegreferanser(hvaslags) {
     var hp = null;
     var meter = null; 
     var dato = null; 
+    
+    $( "#mindialog" ).dialog( "open" )
     
     var oppdaterUrlParams = false; 
     if (hvaslags == 'knappeklikk') {
