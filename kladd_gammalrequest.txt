@@ -169,3 +169,24 @@ var vegrefApi = 'https://jansimple.pythonanywhere.com/vviwrapper/vegreferanse?fy
                 
             }            
         }
+
+
+
+
+    var mindato = "";
+    if (sjekkdato(valgtDato)) {
+        mindato = valgtDato; 
+    
+    } else {
+
+        mindato =  document.getElementById("dato").value;
+        
+    }
+    
+   mindato = formatterdato( mindato);  
+    
+   if (sjekkdato(mindato)) {
+
+ 
+   } else { 
+

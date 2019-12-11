@@ -24,7 +24,7 @@
  <script src="lib/proj4leaflet.js"></script>
 
 </head>
-<body onload="sjekkUrlParams()" >
+<body onload="hentVegreferanse('urlparams')" >
 
 <div id="vegreferansevelger">
 
@@ -37,9 +37,11 @@ Skriv inn med ny eller gammel skrivemåte:<br>
 <p>
     <input type="text" id="inputvegref" size="35"> 
     <button id="hovedknapp" class="myButton" onClick="hentVegreferanse('knappeklikk')">Søk</button> 
-   
+
+    <!-- 
     <button class="myButton2" onClick="hentHistoriskeVegreferanser('knappeklikk')" >Søk historisk verdi</button> 
-    <input type="text" id="dato"><span id="datostatus" class="datoOK">&#10004;</span>
+    -->
+    <input type="text" id="dato" hidden="hidden"> <!-- <span id="datostatus" class="datoOK">&#10004;</span> -->
    
 </p>  
 
@@ -104,20 +106,35 @@ var posisjonToleranse = 5 // Hvor mye avvik vi tolererer, i meter, før vi sier 
 var posisjonToleranseX = 5 // Skiller på X og Y, finjusteres etter hvert som vi får erfaring
 var posisjonToleranseY = 5 // 
 
-var myMarkers = L.featureGroup(); 
-var myCircles = L.featureGroup(); 
+var mittKartmerke = new L.Marker; 
 
+// Legger til enter-tast for hovedknapp
+var enterInput = document.getElementById("inputvegref");
 
+// Execute a function when the user releases a key on the keyboard
+enterInput.addEventListener("keyup", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    // event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("hovedknapp").click();
+  }
+});
 
-
-
-function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParams ) {
-    /* Henter vegsystem-referanse  */
+function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart ) {
+    /* Henter vegsystem-referanse SJEKK PARAMS 
+        param = tekststreng med endepunkt + parametre 
+        oppdatervegref = bool
+        oppdaterUrlParams = bool
+        oppdaterkart = bool
+        sentrerkart = bool 
+    
+    */
     
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?veglenke=" + 
     var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/" + param
     
-    console.log ( veglenkeApi)
     var xhr2 = new XMLHttpRequest();
     xhr2.open("GET", veglenkeApi, true);
     xhr2.send();
@@ -131,11 +148,10 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
             }
 
             var tmp = respons2['vegsystemreferanse']['kortform'].replace(/\s/g,'') ; 
-            
-            console.log( tmp); 
-        
+             
             $("#FEIL").empty();
-            $("#vegsystemdata").empty().append( tmp ) 
+            // Formatterer vegsystemreferansen
+            $("#vegsystemdata").empty().append( prettyprint_vegsystem( tmp ) ) 
 
             var veglenke = respons2['veglenkesekvens']['kortform']; 
 
@@ -143,17 +159,36 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
             if (oppdatervegref) { 
                 var junk = vegref_v2( 'veg.json?veglenke=' + veglenke, false, false, false  ); 
             }
-            // Rutiner for å oppdatere kart! Coming soon...
+            // Rutiner for å oppdatere kart
             if (oppdaterkart) {
-                var regExp = /\(([^)]+)\)/;
-                var wkt = regExp.exec( respons2['geometri']['wkt'] )[1]
-                var ost2 = wkt.split(/[\s]/)[0]
-                var nord2 = wkt.split(/[\s]/)[1]
 
-                vispunktdata( ost2, nord2, oppdaterUrlParams, true)
+                // Sjekker først om vi skal bruke orginalkoordinater: 
+                var ost2 = getUrlParameter( param, 'ost');
+                var nord2 = getUrlParameter( param, 'nord'); 
+
+                if (ost2  && nord2 ) {
+
+                    if (oppdaterUrlParams) {
+                        endreUrlParametre( { "ost" : ost2, "nord" : nord2 } )
+                    }
+
+                } else {
+                    // bruker data fra vegref-oppslaget
+                    var regExp = /\(([^)]+)\)/;
+                    var wkt = regExp.exec( respons2['geometri']['wkt'] )[1]
+                    ost2 = wkt.split(/[\s]/)[0]
+                    nord2 = wkt.split(/[\s]/)[1]
+
+                    if (oppdaterUrlParams) {
+                        endreUrlParametre( { "vegsystemreferanse" : tmp } )
+                    }
+
+                }
+
+                vispunktdata( ost2, nord2, sentrerKart)
 
             }  else if (oppdaterUrlParams) {
-                endreUrlParametre( { "vegsystemreferanse" : tmp } )
+                        endreUrlParametre( { "vegsystemreferanse" : tmp } )
             }
 
             return veglenke;
@@ -169,7 +204,17 @@ function hentvegsystemref( param, oppdaterkart, oppdatervegref, oppdaterUrlParam
     }
 }
 
-function vegref_v2( param , oppdaterkart, oppdatervegref, oppdaterUrlParams) {
+function prettyprint_vegsystem( vegref ) {
+    vegref = vegref.replace( 'V', 'v')
+    vegref = vegref.replace( 'S', ' S')
+    vegref = vegref.replace( 'KD', ' KD')
+    vegref = vegref.replace( 'SD', ' SD')
+    vegref = vegref.replace( /m/g, ' m')
+    return vegref
+
+}
+
+function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart ) {
     /* Henter vegreferanse  */
     
     var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/" + param 
@@ -184,8 +229,6 @@ function vegref_v2( param , oppdaterkart, oppdatervegref, oppdaterUrlParams) {
             var respons2 = JSON.parse(xhr2.responseText);
             var tmp = respons2['vegreferanse']['kortform']; 
             
-            console.log( tmp); 
-
             $("#FEIL").empty()
             $("#vegreferansedata").empty().append(  tmp ) 
 
@@ -193,11 +236,13 @@ function vegref_v2( param , oppdaterkart, oppdatervegref, oppdaterUrlParams) {
 
             // Oppdaterer vegsystemreferanse
             if (oppdatervegref) {
-                var junk = hentvegsystemref( 'veg.json?veglenkesekvens=' + veglenke, false, false);
+                var junk = hentvegsystemref( 'veg.json?veglenkesekvens=' + veglenke, false, false, true, true);
+
+            } 
+            if (oppdaterUrlParams) {
+                var tmp2 = tmp.replace(/\s/g,'')
+                endreUrlParametre( { 'vegreferanse' : tmp2   } )
             }
-
-            // Rutiner for å oppdatere kart!
-
             return veglenke
             
          } else {
@@ -242,15 +287,7 @@ function gyldigvegreferanse( vegref ) {
 function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
        HELT SENTRAL, kalles både ved onload og ved knappeklikk */
-
-    
-    var fylke = null;
-    var kommune = null;
-    var vegkat = null; 
-    var vegstatus = null; 
-    var vegnr = null; 
-    var hp = null;
-    var meter = null; 
+ 
     var dato = null; 
 
     var inputdata = null; 
@@ -258,27 +295,17 @@ function hentVegreferanse(hvaslags) {
     var oppdaterUrlParams = false; 
     if (hvaslags == 'knappeklikk') {
 
-        // Disse fjernes når det er trygt! 
-        fylke       = 50; 
-        kommune     = 0;
-        vegkat      = "E";
-        vegstatus   = "V";
-        vegnr       = 6;
-        hp          = 11;
-        meter       = 200;
         dato       = document.getElementById("dato").value;
 
         inputdata = $("#inputvegref").val(); 
-        console.log( "Inputdata: " + inputdata)
-    
+   
         if (gyldigvegsystemref(inputdata) ) {
-            console.log( "Gyldig vegreferanse" + inputdata)
-            var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true); 
+           
+            var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
         
         } else if (gyldigvegreferanse(inputdata) ) {
-            console.log( "Gyldig vegreferanse" + inputdata)
-            var veglenke = vegref_v2( 'veg.json?vegreferanse=' + inputdata, true, true  ); 
-            
+            var veglenke = vegref_v2( 'veg.json?vegreferanse=' + inputdata, true, true, true, true  ); 
+
         } else {
                 if (inputdata.length == 0) {
                     $("#FEIL").empty().append( "Skriv vegreferanse eller vegsystemreferanse i tekstfeltet til venstre for knappen"  ) 
@@ -293,25 +320,29 @@ function hentVegreferanse(hvaslags) {
     } else if (hvaslags == 'urlparams') {
         var myUrl = window.location.href;
 
-        vegsystemreferanse  =  getUrlParameter( myUrl, "vegsystemreferanse");
-        vegreferanse        = getUrlParameter( myUrl, "vegreferanse");
-        dato                = getUrlParameter( myUrl, "dato");
+        var vegsystemreferanse  =  getUrlParameter( myUrl, "vegsystemreferanse");
+        var vegreferanse        = getUrlParameter( myUrl, "vegreferanse");
+        var dato                = getUrlParameter( myUrl, "dato");
+        var ost                 = getUrlParameter( myUrl, "ost");
+        var nord                 = getUrlParameter( myUrl, "nord");
+
 
        oppdaterUrlParams = false; 
+
+        if (vegsystemreferanse) {
+            hentvegsystemref( 'veg.json?vegsystemreferanse=' + vegsystemreferanse, true, false, true, true )
+        } else if (vegreferanse) {
+            vegref_v2( 'veg.json?vegreferanse=' + vegreferanse, true, false, true, true)
+        } else if ( ost && nord ) {
+            hentvegsystemref( 'posisjon?ost=' + ost + '&nord=' + nord, true, false, true, true )
+
+        } 
 
     }
     
     // Sikrer at dato er riktig formattert
     dato = formatterdato( dato); 
     
-    
-    map.closePopup();
-    if (map.hasLayer(myMarkers)){ 
-        myMarkers.eachLayer(function(l){ myMarkers.removeLayer(l) } );
-        myMarkers.clearLayers(); 
-   }
-    if (map.hasLayer(myCircles)){ myMarkers.eachLayer(function(l){ myCircles.removeLayer(l)  } ) }
-//    if (map.hasLayer(myCircles)){ map.removeLayer(myCircles) }
 
  //    $("#bruksanvisning1").empty();
     
@@ -321,35 +352,7 @@ function hentVegreferanse(hvaslags) {
 
 
 
-function sjekkUrlParams() {
-/* Leser URL parametre ved oppstart  */
 
-    var myUrl = window.location.href; 
-    var visningstype = getUrlParameter(myUrl, "kartvisning"); 
-    var dato = getUrlParameter(myUrl, "dato");
-
-    fylldatovelger(dato); 
-    
-    if (visningstype === "posisjon") { 
-        console.log( "Viser tidsutvikling vegreferanse i fast posisjon" ); 
-        var ost  = parseFloat( getUrlParameter( myUrl, "ost")) ;
-        var nord = parseFloat( getUrlParameter( myUrl, "nord")); 
-        
-        if (!isNaN( ost) && !isNaN(nord)) {
-            
-            vispunktdata( ost, nord, false, true, dato); 
-            
-        } else {
-            console.log( "ikke happy ned nord/ost parametre"); 
-        }
-        
-        
-    } else if (visningstype === "vegreferanse" ) {
-        console.log( "Viser ulike posisjoner for en gitt vegreferanse") ;
-        hentVegreferanser('urlparams'); 
-                
-    } 
-}
 
 
 /* URL manipulation funksjoner 
@@ -486,37 +489,6 @@ L.control.zoom({
      position:'topleft'
 }).addTo(map);
 
-function lagPunktHistorikkTabell( jsondata, mindato) {
-    // GAMMEL, fjernes når det er trygt (og du har rappa relevant kode... )
-
-    $("#vegreferanseTabell").empty(); 
-    $("#bruksanvisning1").empty();
-    var coordstring = ''; 
-    var arrayLength = jsondata['features'].length;
-    for (var i = 0; i < arrayLength; i++) {
-
-        if ($("#vegreferanseTabell tbody").length == 0) {
-          $("#vegreferanseTabell").append("<thead>" + 
-          "<th><em>Vegreferanse</em></th>" + 
-          "<th><em>Gyldig fra</em></th>" + 
-          "<th><em>Gyldig til</em></th></tr></thead><tbody></tbody>");
-        }
-
-        coordstring = Math.round(jsondata['features'][0]['geometry']['coordinates'][0]).toString() + ', ' +
-                          Math.round(jsondata['features'][0]['geometry']['coordinates'][1]).toString() ; 
-        
-        // Append product to the table
-        var myTableRow = "<tr " + 'class="'  + jsondata['features'][i]['properties']['fremhev'] +  '">' +
-            "<td>" + jsondata['features'][i]['properties']['vegref'] + "</td>" +
-            "<td>" + jsondata['features'][i]['properties']['fradato'] + "</td>" +
-            "<td>" + jsondata['features'][i]['properties']['tildato'] + "</td>" +
-          "</tr>"; 
-        $("#vegreferanseTabell tbody").append(myTableRow);
-    }
-    $("#bruksanvisning1").append('<h2>Vegreferanseverdier i punkt ' + coordstring + '</h2>');
-}    
-
-
 
 function onLocationFound(e) {
     // Internt for leaflet
@@ -535,12 +507,13 @@ function onLocationFound(e) {
     utm33 = crs.projection.project( latlon );  
         
     // vispunktdata( utm33.x, utm33.y, true, false); 
-    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, true, true );
+    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, false, false, false );
+    endreUrlParametre( { 'ost' : utm33.x, 'nord' : utm33.y })
 
     L.marker(e.latlng).addTo(map)
         .bindPopup("Din posisjon med " + radius + "m usikkerhet").openPopup();
 
- //    L.circle(e.latlng, radius).addTo(map);
+     L.circle(e.latlng, radius).addTo(map);
 }
 
 map.on('locationfound', onLocationFound);
@@ -554,43 +527,25 @@ function onLocationError(e) {
 
 map.on('locationerror', onLocationError);
 
-function vispunktdata( ost, nord, oppdaterUrl, sentrerKart, valgtDato) {
+function vispunktdata( ost, nord, sentrerKart) {
 /* Legger punktdata i kartet (og eventuelt oppdaterer nettleserens adressefelt)
 PARAMETRE: 
 ost, nord = UTM koordinater, sone 33 (EPSG:25833
-oppdaterUrl : boolean. Angir om vi skal oppdatere nettleser-adressen og -historikken.
 sentrerKart : boolean. Sentrerer kartet i angitt posisjon. 
     Brukes når posisjon angis i URL. Men ved klikk-i-kartet skal du IKKE sentrere kartet. 
-valgtDato : Dato på format '2019-12-31'
 
 */
 
-    var mindato = "";
-    if (sjekkdato(valgtDato)) {
-        mindato = valgtDato; 
     
-    } else {
+    var mittPunkt =  crs.projection.unproject( L.point( ost, nord));
+    mittKartmerke.setLatLng(mittPunkt);
+    mittKartmerke.addTo(map); 
 
-        mindato =  document.getElementById("dato").value;
-        
+    if (sentrerKart) {
+        var latLngs = [ mittKartmerke.getLatLng() ];
+        var markerBounds = L.latLngBounds(latLngs);
+        map.fitBounds(markerBounds);
     }
-    
-   mindato = formatterdato( mindato);  
-    
-   if (sjekkdato(mindato)) {
-
- 
-   } else { 
-
-       // historikkApi = 'https://python.ltglahn.no/posisjon?ost='+ost +
-       historikkApi = 'https://jansimple.pythonanywhere.com/vviwrapper/posisjon?ost='+ost +
-        '&nord='+nord + '&fjerndubletter=true';
-    
-    }
-
-// Går i sirkel her... 
-     
-
 
 }
 
@@ -601,44 +556,11 @@ function onMapClick(e) {
     utm33 = crs.projection.project( latlon );  
         
     // vispunktdata( utm33.x, utm33.y, true, false); 
-    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, true, true );
+    veglenke = hentvegsystemref( 'posisjon.json?ost=' + utm33.x + '&nord='+ utm33.y, true, true, true, false );
 
  
 }
 
-function laglenke_punktsok( X, Y, tekst, dato) {
-// Lager a href - element hvor lenkn til søk etter vegref-verdier i punkt X,Y og teksten "tekst"
-// hvor mindato fremheves 
-//
-// Syntaks er /?kartvisning=posisjon&ost=269288.300048828&nord=7039099.39990234&dato=2019-08-08 
-// I tillegg legger vi på URL parametre for vegreferanse-søk. 
-
-
-    var myUrl = window.location.href;
-    var myPath = myUrl.split('?')[0]
-
-     var minlenke = myPath + '?kartvisning=posisjon&ost=' + X + '&nord=' + Y + '&dato=' + dato;  
-     
-     // Legger på URL parametre brukt til vegreferanse-søk. Unngår navnekollisjon med de globale verdiene. 
- 
-      var fylke2       = parseInt( getUrlParameter( myUrl, "fylke")); 
-      var kommune2     = parseInt( getUrlParameter( myUrl, "kommune"));
-      var vegkat2      = getUrlParameter( myUrl, "vegkat").toUpperCase();
-      var vegstatus2   = getUrlParameter( myUrl, "vegstatus").toUpperCase();
-      var vegnr2       = parseInt( getUrlParameter( myUrl, "vegnr"));
-      var hp2          = parseInt( getUrlParameter( myUrl, "hp"));
-      var meter2       = parseInt( getUrlParameter( myUrl, "meter"));
- 
-    //  fylke=18&kommune=0&vegkat=E&vegstatus=V&vegnr=6&hp=1&meter=0&dato=1950-01-01
-
-    var vegrefparams = '&fylke='+fylke2 + '&kommune='+kommune2 + '&vegkat=' + vegkat2 + '&vegstatus=' + vegstatus2 + 
-                '&vegnr=' + vegnr2 + '&hp=' + hp2 + '&meter=' + meter2 ;  
- 
-    var minklikkbare = '<a href="' + minlenke + vegrefparams + '">' + tekst + '</a>' ; 
-
-    // console.log( minklikkbare) 
-    return minklikkbare; 
-}
 
 
 map.on( 'click', onMapClick); 
