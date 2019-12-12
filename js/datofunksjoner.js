@@ -1,3 +1,13 @@
+function hentdagensdato() {
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+    var dagens = yyyy + '-' + mm + '-' + dd; 
+
+    return dagens
+}
+
 function fylldatovelger(valgtdato) {
     var mindato = ''; 
 
@@ -15,11 +25,7 @@ function fylldatovelger(valgtdato) {
 
     if (!sjekkdato( valgtdato)) { 
 
-        var today = new Date();
-        var dd = String(today.getDate()).padStart(2, '0');
-        var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-        var yyyy = today.getFullYear();
-        valgtdato = yyyy + '-' + mm + '-' + dd; 
+        valgtdato = hentdagensdato(); 
 
     }
 
@@ -30,7 +36,15 @@ function fylldatovelger(valgtdato) {
 /* Sjekker om vi har endret dato-tekstfeltet */
 $("#dato").on("input", function(){
      var mindato = document.getElementById("dato").value;
-     if (sjekkdato(mindato)) {
+     endredatostatus(mindato)
+})
+
+function endredatostatus(endato) {
+    if (endato == undefined) {
+        endato = document.getElementById("dato").value;
+    }
+
+    if (sjekkdato(endato)) {
 
         // console.log( "Dato-tekstfelt endret" + mindato);  
         $(datostatus).removeClass('datoFeil').addClass('datoOK');
@@ -42,7 +56,7 @@ $("#dato").on("input", function(){
         $(datostatus).html('Skriv inn dato på formen ÅÅÅÅ-MM-DD'); 
      
      }
-})
+}
 
 function formatterdato(mindato) {
     if (sjekkdato(mindato)) {

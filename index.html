@@ -22,7 +22,7 @@
  <script src="lib/leaflet/leaflet.js" ></script>
  <script src="lib/proj4-compressed.js"></script>
  <script src="lib/proj4leaflet.js"></script>
-
+ <script src="js/datofunksjoner.js"></script>
 </head>
 <body onload="hentVegreferanse('urlparams')" >
 
@@ -41,14 +41,13 @@ Skriv inn med ny eller gammel skrivemåte:<br>
     <!-- 
     <button class="myButton2" onClick="hentHistoriskeVegreferanser('knappeklikk')" >Søk historisk verdi</button> 
     -->
-    <input type="text" id="dato" hidden="hidden"> <!-- <span id="datostatus" class="datoOK">&#10004;</span> -->
+    <input type="text" id="dato" > <span id="datostatus" class="datoOK">&#10004;</span>
    
 </p>  
 
 
 
-<div id="map" class="map map-home" style="height: 40vh; width=100%;"></div>
-
+<div id="map" class="map map-home" style="height: 40vh; width:100%;"></div>
 
 <!--
 <div id="bruksanvisning1"><h2>Kom i gang:</h2>
@@ -102,25 +101,33 @@ Skriv inn med ny eller gammel skrivemåte:<br>
 
 <script>
 
-var posisjonToleranse = 5 // Hvor mye avvik vi tolererer, i meter, før vi sier at to posisjoner er like
-var posisjonToleranseX = 5 // Skiller på X og Y, finjusteres etter hvert som vi får erfaring
-var posisjonToleranseY = 5 // 
-
 var mittKartmerke = new L.Marker; 
 
-// Legger til enter-tast for hovedknapp
-var enterInput = document.getElementById("inputvegref");
+var dagensdato = hentdagensdato();
 
-// Execute a function when the user releases a key on the keyboard
-enterInput.addEventListener("keyup", function(event) {
-  // Number 13 is the "Enter" key on the keyboard
-  if (event.keyCode === 13) {
-    // Cancel the default action, if needed
-    // event.preventDefault();
-    // Trigger the button element with a click
-    document.getElementById("hovedknapp").click();
-  }
+// Legger til enter-tast for hovedknapp
+$(function() {
+        var $selector = $('inputvegref');
+
+        // Prevent double-binding
+        // (only a potential issue if script is loaded through AJAX)
+        $(document.body).off('keyup', $selector);
+
+        // Bind to keyup events on the $selector.
+        $(document.body).on('keyup', $selector, function(event) {
+          if(event.keyCode == 13) { // 13 = Enter Key
+            endredatostatus()
+            hentVegreferanse('knappeklikk');
+          } else {
+            endredatostatus()
+
+          }
+        });
 });
+
+
+    // Trigger the button element with a click
+    // document.getElementById("hovedknapp").click();
 
 function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart ) {
     /* Henter vegsystem-referanse SJEKK PARAMS 
@@ -134,7 +141,7 @@ function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkar
     
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?veglenke=" + 
     var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/" + param
-    
+
     var xhr2 = new XMLHttpRequest();
     xhr2.open("GET", veglenkeApi, true);
     xhr2.send();
@@ -191,6 +198,8 @@ function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkar
                         endreUrlParametre( { "vegsystemreferanse" : tmp } )
             }
 
+            // Visveginfo (hvis dato er != dagens)
+            hentvisveginfolenke( veglenke )
             return veglenke;
             
          } else {
@@ -257,6 +266,48 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
 }
 
 
+function hentvisveginfolenke( veglenke ) {
+    // var vviurl = 'https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForReference?roadReference=1500EV0003902907618&ViewDate=2013-01-12&topologyLevel=Overview'
+
+    baseUrl = 'http://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?'
+
+    var ViewDate = document.getElementById("dato").value;
+
+    if (dagensdato != ViewDate && sjekkdato( ViewDate)) { 
+
+        var veglenke = veglenke.split('@')
+        var vviurl = baseUrl + 'rellen=' + veglenke[0] +  '&reflinkoid=' +  veglenke[1] + '&ViewDate=' + ViewDate
+
+        var xhr2 = new XMLHttpRequest();
+        xhr2.open("GET", vviurl, true);
+        xhr2.send();
+        xhr2.onreadystatechange = function () {
+        
+            if (xhr2.readyState == 4 && xhr2.status == 200) {
+                
+                r = $.parseXML( xhr2.responseText )
+                fylke = r.getElementsByTagName("County")[0].innerHTML
+                kommune = r.getElementsByTagName("Municipality")[0].innerHTML
+                vegkat = r.getElementsByTagName("RoadCategory")[0].innerHTML
+                vegstatus = r.getElementsByTagName("RoadStatus")[0].innerHTML.toLowerCase()
+                vegnr = r.getElementsByTagName("RoadNumber")[0].innerHTML
+                hp = r.getElementsByTagName("RoadNumberSegment")[0].innerHTML
+                meter = r.getElementsByTagName("RoadNumberSegmentDistance")[0].innerHTML
+
+                vegreftekst = fylke.toString().padStart(2,'0') + kommune.toString().padStart(2,'0') + ' ' +  
+                            vegkat.toUpperCase() + vegstatus.toLowerCase() + vegnr.toString() + 
+                            ' hp' + hp.toString() + ' m' + meter.toString(); 
+
+                veglenke = r.getElementsByTagName("Measure")[0].innerHTML + '@' + r.getElementsByTagName("ReflinkOID")[0].innerHTML
+                $("#historiskvegreferansedata").empty().append( '<em>' + vegreftekst + ' per '+ ViewDate + '</em>')
+
+                console.log(  )
+
+            } 
+        }
+
+    }
+}
 
 function gyldigvegsystemref( vegref ) {
     /* Avgjør om det er gyldig vegsystemreferanse */
@@ -281,8 +332,6 @@ function gyldigvegreferanse( vegref ) {
 
     return false; 
 }
-
-
 
 function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
@@ -340,19 +389,13 @@ function hentVegreferanse(hvaslags) {
 
     }
     
-    // Sikrer at dato er riktig formattert
+    // Legger dato inn i datofeltet 
     dato = formatterdato( dato); 
-    
+    fylldatovelger(dato);
 
  //    $("#bruksanvisning1").empty();
     
- 
-    
 }
-
-
-
-
 
 
 /* URL manipulation funksjoner 
@@ -375,6 +418,13 @@ function endreUrlParametre( params) {
 /* Oppdaterer URL parametre slik at den er a jour med de brukervalgene som er a jour
     Legger også eksisterende URL til nettleser-historikken.
 */ 
+
+    // Sjekker om datofeltet er endret - og føyer det i så fall til i URL 
+    dato = formatterdato( document.getElementById("dato").value );
+    if (dato != dagensdato) { 
+        params['dato'] = dato; 
+    }
+
 
     // Dele URL i statisk del og eventuelle parametre-del
     var oldUrl = window.location.href.split('?'); 
@@ -431,9 +481,6 @@ function setUrlParameter(url, key, value) {
 
     return baseUrl + params;
 }
-
-
-
 
 
 var crs = new L.Proj.CRS('EPSG:25833',
@@ -569,6 +616,6 @@ $('.leaflet-container').css('cursor','crosshair');
 L.control.scale({ imperial : false }  ).addTo(map);
 
 </script>
- <script src="js/datofunksjoner.js"></script>
+
 </body>
 </html>
