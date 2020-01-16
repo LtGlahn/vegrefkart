@@ -274,7 +274,7 @@ function gyldigvegsystemref( vegref ) {
 function gyldigvegreferanse( vegref ) {
     /* Avgjør om det er gyldig vegreferanse */
     vegref = vegref.replace(/\s/g,'') 
-    if (parseInt(vegref.charAt(0))) { 
+    if ( !isNaN(parseInt( vegref.charAt(0)  ))) { 
 
         return true; 
     }
