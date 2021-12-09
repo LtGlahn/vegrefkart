@@ -464,14 +464,26 @@ var crs = new L.Proj.CRS('EPSG:25833',
 
 
 var nvdbcache = 'https://nvdbcache.geodataonline.no/arcgis/rest/services/Trafikkportalen/GeocacheTrafikkJPG/MapServer/tile/{z}/{y}/{x}'
+//TOR -- Url til flyfoto
+var bilder = 'https://services.geodataonline.no/arcgis/rest/services/Geocache_UTM33_EUREF89/GeocacheBilder/MapServer/tile/{z}/{y}/{x}'
 
-var bakgrunnskart = new L.tileLayer(nvdbcache, {
+var bakgrunnskart1 = new L.tileLayer(nvdbcache, {
     maxZoom: 16,
     minZoom: 0,	
     subdomains: '123456789',
     continuousWorld: true,
     detectRetina: false, 
 	attribution: '&copy; NVDB, Geovekst, kommmuene. Kartbakgrunn utenfor Norge: Open street map contributors'
+});
+
+//TOR -- Lager bakgrunsskart-objekt for flyfoto
+var bakgrunnskart2 = new L.tileLayer(bilder, {
+    maxZoom: 16,
+    minZoom: 0,
+    subdomains: '123456789',
+    continuousWorld: true,
+    detectRetina: false, 
+	attribution: 'Test'
 });
 
 var map = new L.map('map', {
@@ -482,12 +494,22 @@ var map = new L.map('map', {
     worldCopyJump: false,
     zoomControl: false,
     attributionControl: true,
-   layers: [bakgrunnskart]
+    //TOR -- La til ekstra bakgrunnskart
+   layers: [bakgrunnskart1]
 })
 
 L.control.zoom({
      position:'topleft'
 }).addTo(map);
+
+//TOR -- Sette opp basemap obj
+var baseMaps = {
+    "Trafikkportalen": bakgrunnskart1,
+    "Flyfoto": bakgrunnskart2,
+};
+
+//TOR -- Legger til kontroll for å velge lag
+L.control.layers(baseMaps).addTo(map);
 
 
 function onLocationFound(e) {
