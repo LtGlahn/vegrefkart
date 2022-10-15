@@ -6,6 +6,82 @@
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!--
+    FUNKSJONSLOGIKK
+
+    Denne siden aksepterer (og viser) input med tre typer informasjon om et punkt på vegnettet: 
+     
+        * Koordinater
+
+        * Vegreferanse etter gammelt system 
+
+        * Vegreferanse etter nytt system 
+
+    Ved input av en av disse så henter vi informasjon om de to øvrige, for eksempel kan du oppgi gammel 
+    vegreferanse og siden vil da oppdatere kartposisjon + vise tekst med både gammel og ny vegreferanse.  
+    
+    Input kan komme fra  fire - 4 - interaktive elementer 
+
+        * URL-parametre, eks
+            - vegreferanse=5000Ev6hp11m2668
+            - vegsystemreferanse=, 
+            - koordinater (ost, nord, i UTM 33 koordinater) 
+
+        * Et tekstfelt der man kan skrive vegreferanse eller vegsystemreferanse
+
+        * Klikkbar kartflate med markør 
+
+        * Knappen "Bruk min posisjon"
+
+    Ved klikk i kartet eller ved "min posisjon" så brukes funksjonen `hentvegsystemref` til å hente
+    informasjon fra NVDB api V3 `veg` eller `posisjon` - endepunktet. Denne funksjonen brukes også til 
+    å hente data ved endring av tekstfelt eller URL parametre, men `hentvegsystemref` blir da 
+    kalt via funksjonen `hentVegreferanse` (se nedenfor) 
+    
+            Funksjonen `hentvegsystemref` har ikke noe forhold til om vi skal hente fra `veg` eller `posisjon`
+            endepunktene til NVDB api V3, alt er parameterstyrt. Det er også parameterstyrt om vi skal  
+            hente informasjon om gammelt system fra Visveginfo. 
+
+            Det er også parameterstyrt hvilke informasjonselementer som skal oppfriskes med nye data. 
+            Logikken er jo at de inputverdiene som brukeren manipulerer får stå i fred, og så oppfrisker man 
+            de øvrige feltene. For eksempel vil du ikke flytte kartmarkøren når bruker har klikket i kartet, men 
+            endre URL-parametre + tekst med vegreferanse etter både gammelt og nytt system som 
+            samsvarer med brukervalgt kartposisjon
+
+               
+    Ved lasting av side eller endring av input-felt så kalles `hentVegreferanse` som gjør følgende
+
+            1) Avgjør hvilke type input-metode som er aktuell denne gangen  
+                (URL-parametre ved lasting av side,  tekstfelt)
+
+                Dette er angitt i funksjonskallet med variabel `hvaslags`
+
+                Funksjoenn `hentVegreferanse` vil deretter aktivt hente informasjon fra webdokumentet, 
+                basert på verdien av "hvaslags". 
+
+            2) Bruker input-verdier til å hente øvrig informasjonen om angitt punkt på vegnettet 
+
+                Først valideres om input er gyldig vegssystemreferanse. I så fall hentes informasjon fra NVDB 
+                api V3 veg - endepunkt, med parameter vegsystemreferanse=<INPUT> til vår funksjon `hentvegsystemref`
+
+                Hvis ikke input er gyldig vegsystemreferanse så validerer vi om input er gyldig vegreferanse 
+                (gammelt system). Tidligere brukte vi kall mot NVDB api V2, men dette er lagt ned. 
+
+                TODO: SKRIV OM FUNKSJONEN  `vegref_v2` TIL Å BRUKE VISVEGINFO
+            
+            3) Fyller inn (oppfrisker) de elementene på siden som IKKE er brukt til å angi input. 
+
+               Ved URL parameter oppfriskes kartposisjon og tekstfelt med gammel og ny vegreferanse 
+
+               Eller ved å angi vegreferanse (enten etter nytt eller etter gammel system) så blir kartposisjon, tekst
+               og URL parametre oppdatert.
+               
+               
+
+
+-->
+
+
 <!--    
 <script
       src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -286,7 +362,7 @@ function gyldigvegreferanse( vegref ) {
 
 function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
-       HELT SENTRAL, kalles både ved onload og ved knappeklikk */
+       HELT SENTRAL, kalles både ved onload og ved endring av tekst inputfelt */
  
     var dato = null; 
 
