@@ -78,6 +78,25 @@
                
                
 
+    Funksjonen vegref_v2 skrives om, slik at den blir en wrapper rundt kall til Visveginfo, men uten at det påvirker øvrige funksjoner
+    
+    Kall til veg-endepunktet med parameter "veglenke" skal skrives om til å gå mot GetRoadReferenceForNVDBReference - endepunktet, eksempel 
+        https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?reflinkoid=248917&rellen=0.5&ViewDate=2010-01-12
+
+
+    Kall til veg-endepunktet med parameter "vegreferanse" skal skrives om til å gå mot GetRoadReferenceForReference - endepunktet, eksempel 
+        https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForReference?roadReference=1500EV0003902907618&ViewDate=2022-10-31&topologyLevel=Overview
+
+
+    I begge tilfeller må vi parse "param"-argumentet, avgjøre hvilken type det er og så fiske ut dataverdiene før vi skriver om 
+    til visveginfo-syntaks.
+
+
+                    function vegref_v2( param ,                         oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart )
+
+hentvegsystemref  L242: vegref_v2( 'veg.json?veglenke=' + veglenke,         false,        false,           false  );
+hentVegreferanse  L389: vegref_v2( 'veg.json?vegreferanse=' + inputdata,    true,         true,            true,           true  );
+hentVegreferanse  L417: vegref_v2( 'veg.json?vegreferanse=' + vegreferanse, true,         false,           true,           true)
 
 -->
 
@@ -123,7 +142,7 @@ Skriv inn med ny eller gammel skrivemåte:<br>
 
 
 
-<div id="map" class="map map-home" style="height: 40vh; width=100%;"></div>
+<div id="map" class="map map-home" style="height: 40vh; width: 100%;"></div>
 
 
 <!--
@@ -283,8 +302,8 @@ function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkar
 function prettyprint_vegsystem( vegref ) {
     vegref = vegref.replace( 'V', 'v')
     vegref = vegref.replace( 'S', ' S')
-    vegref = vegref.replace( 'KD', ' KD')
-    vegref = vegref.replace( 'SD', ' SD')
+    vegref = vegref.replace( 'KD', ' Kd')
+    vegref = vegref.replace( 'SD', ' Sd')
     vegref = vegref.replace( /m/g, ' m')
     return vegref
 
@@ -296,42 +315,98 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
     var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/" + param 
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v3/veg.json?" + param
     
-    var xhr2 = new XMLHttpRequest();
-    xhr2.open("GET", veglenkeApi, true);
-    xhr2.send();
-    xhr2.onreadystatechange = function () {
-    
-         if (xhr2.readyState == 4 && xhr2.status == 200) {
-            var respons2 = JSON.parse(xhr2.responseText);
-            var tmp = respons2['vegreferanse']['kortform']; 
-            
-            $("#FEIL").empty()
-            $("#vegreferansedata").empty().append(  tmp ) 
 
-            var veglenke = respons2['veglenke']['kortform']; 
+    // Dekoder param-argumentet - skal vi hente veglenkesekvens eller spørre etter vegreferanseverdier? 
+    if ( param.includes( 'veg.json?veglenke=')) { 
+        var splitarr1 = param.split( "=")[1].split("@")
+        var vviUrl =  "https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?" 
+        vviUrl =  vviUrl +  "reflinkoid=" + splitarr1[1] + "&rellen=" + splitarr1[0]  +  "&ViewDate=2020-10-31"
+        console.log( "Skal hente gammal vegref på veglenke:",  splitarr1[0], splitarr1[1])
+        console.log( vviUrl )
+      } else if ( param.includes( "veg.json?vegreferanse=" )  ) { 
+        console.log( "Skal slå opp på  vegreferanse-verdi", param)
+        
+        var vegrefGammal = param.split( "=")[1].replace(/\s+/g, ''); // Fjerner whitespace 
+        var vegnrHpMeter = vegrefGammal.substring( 6 ).toLowerCase()
+        var splitarr2 = vegnrHpMeter.split( "hp")
+        var splitarr3 = splitarr2[1].split( "m")
+        var vegnr    = splitarr2[0].padStart(5, "0" )
+        var hp       = splitarr3[0].padStart( 3, "0")
+        var meter    = splitarr3[1].padStart( 5, "0")
+        var vviSyntaks = vegrefGammal.substring( 0, 4 ) + vegrefGammal[4].toUpperCase() + vegrefGammal[5].toUpperCase()
+        vviSyntaks = vviSyntaks + vegnr + hp + meter 
 
-            // Oppdaterer vegsystemreferanse
-            if (oppdatervegref) {
-                var junk = hentvegsystemref( 'veg.json?veglenkesekvens=' + veglenke, false, false, true, true);
+        vviUrl = "https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForReference?"
+        vviUrl = vviUrl +  "roadReference=" + vviSyntaks
+        vviUrl = vviUrl +   "&ViewDate=2022-10-31&topologyLevel=Overview" 
+        console.log( vviUrl )
+      } else { 
+        console.log( "This should not happen! Argument param skal inneholde veg.json?veglenke= eller veg.json?vegreferanse= ")
+      }
 
-            } 
-            if (oppdaterUrlParams) {
-                var tmp2 = tmp.replace(/\s/g,'')
-                endreUrlParametre( { 'vegreferanse' : tmp2   } )
+
+    var xhr3 = new XMLHttpRequest();
+    xhr3.open("GET", vviUrl, true);
+    xhr3.send();
+    xhr3.onreadystatechange = function () {
+
+        if (xhr3.readyState == 4 && xhr3.status == 200) {
+            roadRefList = xhr3.responseXML.getElementsByTagName( "RoadReference") 
+            if (roadRefList.length > 0 ) { 
+                fylke    = roadRefList[0].getElementsByTagName( "County")[0].childNodes[0].nodeValue;
+                kommune  = roadRefList[0].getElementsByTagName( "Municipality")[0].childNodes[0].nodeValue;
+                vegKat   = roadRefList[0].getElementsByTagName( "RoadCategory")[0].childNodes[0].nodeValue;
+                vegStat  = roadRefList[0].getElementsByTagName( "RoadStatus")[0].childNodes[0].nodeValue;
+                vegNr    = roadRefList[0].getElementsByTagName( "RoadNumber")[0].childNodes[0].nodeValue;
+                vegHp    = roadRefList[0].getElementsByTagName( "RoadNumberSegment")[0].childNodes[0].nodeValue;
+                vegMeter = roadRefList[0].getElementsByTagName( "RoadNumberSegmentDistance")[0].childNodes[0].nodeValue;
+                vlID     = roadRefList[0].getElementsByTagName( "ReflinkOID")[0].childNodes[0].nodeValue;
+                vPos     = roadRefList[0].getElementsByTagName( "Measure")[0].childNodes[0].nodeValue;
+
+                VVIvegref = fylke.padStart( 2, "0") + kommune.padStart( 2, "0") + " " + vegKat + vegStat.toLowerCase() + " "
+                VVIvegref = VVIvegref +  vegNr + " hp" + vegHp + " m" + vegMeter 
+
+                VVIveglenke = vPos + "@" + vlID  
+
+                // var respons2 = JSON.parse(xhr2.responseText);
+                // var tmp = respons2['vegreferanse']['kortform']; 
+                
+                $("#FEIL").empty()
+                $("#vegreferansedata").empty().append(  VVIvegref ) 
+
+                // var veglenke = respons2['veglenke']['kortform']; 
+
+                // Oppdaterer vegsystemreferanse
+                if (oppdatervegref) {
+                    var junk = hentvegsystemref( 'veg.json?veglenkesekvens=' + VVIveglenke, false, false, true, true);
+
+                } 
+                if (oppdaterUrlParams) {
+                    var tmp2 = VVIvegref.replace(/\s/g,'')
+                    endreUrlParametre( { 'vegreferanse' : tmp2   } )
+                }
+                return VVIveglenke
+
+            } else { 
+                $("#vegreferansedata").empty()
+                $("#FEIL").empty().append( "Fant ingen vegreferanse for angitt verdi"  )  
+                if (oppdatervegref) {
+                    $("#vegsystemdata").empty()
+                }
+
             }
-            return veglenke
             
-         } else {
+        } else {
             $("#vegreferansedata").empty()
             $("#FEIL").empty().append( "Fant ingen vegreferanse for angitt verdi"  )  
             if (oppdatervegref) {
                 $("#vegsystemdata").empty()
             }
 
-         }
+        }
     }
-}
 
+}
 
 
 function gyldigvegsystemref( vegref ) {
@@ -362,7 +437,7 @@ function gyldigvegreferanse( vegref ) {
 
 function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
-       HELT SENTRAL, kalles både ved onload og ved endring av tekst inputfelt */
+       HELT SENTRAL, kalles både ved onload og ved endring av tekst inputfelt, og ved klikk i kart  */
  
     var dato = null; 
 
