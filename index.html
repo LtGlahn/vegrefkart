@@ -81,11 +81,11 @@
     Funksjonen vegref_v2 skrives om, slik at den blir en wrapper rundt kall til Visveginfo, men uten at det påvirker øvrige funksjoner
     
     Kall til veg-endepunktet med parameter "veglenke" skal skrives om til å gå mot GetRoadReferenceForNVDBReference - endepunktet, eksempel 
-        https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?reflinkoid=248917&rellen=0.5&ViewDate=2010-01-12
+        https://visveginfo-static.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?reflinkoid=248917&rellen=0.5&ViewDate=2010-01-12
 
 
     Kall til veg-endepunktet med parameter "vegreferanse" skal skrives om til å gå mot GetRoadReferenceForReference - endepunktet, eksempel 
-        https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForReference?roadReference=1500EV0003902907618&ViewDate=2022-10-31&topologyLevel=Overview
+        https://visveginfo-static.opentns.org/RoadInfoService/GetRoadReferenceForReference?roadReference=1500EV0003902907618&ViewDate=2022-10-31&topologyLevel=Overview
 
 
     I begge tilfeller må vi parse "param"-argumentet, avgjøre hvilken type det er og så fiske ut dataverdiene før vi skriver om 
@@ -319,7 +319,7 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
     // Dekoder param-argumentet - skal vi hente veglenkesekvens eller spørre etter vegreferanseverdier? 
     if ( param.includes( 'veg.json?veglenke=')) { 
         var splitarr1 = param.split( "=")[1].split("@")
-        var vviUrl =  "https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?" 
+        var vviUrl =  "https://visveginfo-static.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?" 
         vviUrl =  vviUrl +  "reflinkoid=" + splitarr1[1] + "&rellen=" + splitarr1[0]  +  "&ViewDate=2020-10-31"
         console.log( "Skal hente gammal vegref på veglenke:",  splitarr1[0], splitarr1[1])
         console.log( vviUrl )
@@ -336,7 +336,7 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
         var vviSyntaks = vegrefGammal.substring( 0, 4 ) + vegrefGammal[4].toUpperCase() + vegrefGammal[5].toUpperCase()
         vviSyntaks = vviSyntaks + vegnr + hp + meter 
 
-        vviUrl = "https://visveginfo.opentns.org/RoadInfoService/GetRoadReferenceForReference?"
+        vviUrl = "https://visveginfo-static.opentns.org/RoadInfoService/GetRoadReferenceForReference?"
         vviUrl = vviUrl +  "roadReference=" + vviSyntaks
         vviUrl = vviUrl +   "&ViewDate=2022-10-31&topologyLevel=Overview" 
         console.log( vviUrl )
