@@ -488,7 +488,9 @@ function hentVegreferanse(hvaslags) {
         } else if (gyldigvegsystemref_KPS(inputdata) ) {
 
            kommuneNummer = gyldigKommuneNummer( inputdata); 
-           var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata + '&kommune=' + kommuneNummer, true, true, true, true); 
+//           var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata + '&kommune=' + kommuneNummer, true, true, true, true); 
+// Ny syntaks i API støtter kommunenummer først i vegsystemreferansen (eller som egen parameter kommune=<kommunenummer>, men ikke begge deler)
+           var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
 
         } else if (gyldigvegreferanse(inputdata) ) {
             var veglenke = vegref_v2( 'veg.json?vegreferanse=' + inputdata, true, true, true, true  ); 
