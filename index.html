@@ -409,63 +409,6 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
 }
 
 
-function gyldigvegsystemref_ERF( vegref ) {
-    /* Avgjør om det er gyldig vegsystemreferanse */
-    vegref = vegref.replace(/\s/g,'') 
-    vegkat = vegref.charAt(0).toLowerCase();  
-
-
-    if (  ["e", "r", "f"].includes( vegkat) ) { 
-        return true; 
-    } 
-
-
-    return false; 
-}
-
-function gyldigvegsystemref_KPS( vegref ) {
-    /* Avgjør om det er gyldig vegsystemreferanse */
-    vegref = vegref.replace(/\s/g,'') 
-    kommune = gyldigKommuneNummer( vegref );
-
-    if ( kommune.length > 2 ) { // 3 (kommune 301) eller flere siffer 
-        vegkat = vegref.charAt( kommune.length ).toLowerCase();  
-
-        if (  ["k", "p", "s"].includes( vegkat) ) { 
-            return true; 
-        }
-    } 
-
-    return false; 
-}
-
-function gyldigvegreferanse( vegref ) {
-    /* Avgjør om det er gyldig vegreferanse */
-    vegref = vegref.replace(/\s/g,'') 
-    if ( !isNaN(parseInt( vegref.charAt(0)  ))) { 
-
-        return true; 
-    }
-
-    return false; 
-}
-
-function gyldigKommuneNummer( vegref ) {
-    /* Sjekker om det er kommunenummer i starten av strengen, 3 eller 4 siffer
-    Returnerer TEKST-representasjon av kommunenummer, alternativt tom streng ''  */ 
-    vegref = vegref.replace(/\s/g,'') 
-    myNum = parseInt( vegref, 10)
-    if( isNaN( myNum )) { 
-        return ''; 
-    } else if ( myNum == 301 || (myNum > 1000 && myNum < 10000)  ) { 
-        return myNum.toString(); 
-    
-    } else {
-        return ''; 
-    }
-
-}
-
 function hentVegreferanse(hvaslags) {
     /* Hvaslags - er vi kalt opp via URL parametre når siden lastes, eller klikk på knappen?
        HELT SENTRAL, kalles både ved onload og ved endring av tekst inputfelt, og ved klikk i kart  */
@@ -480,20 +423,9 @@ function hentVegreferanse(hvaslags) {
         dato       = document.getElementById("dato").value;
 
         inputdata = $("#inputvegref").val(); 
-   
-        if (gyldigvegsystemref_ERF(inputdata) ) {
-           
+
+        if (inputdata.length > 7) {
             var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
-
-        } else if (gyldigvegsystemref_KPS(inputdata) ) {
-
-           kommuneNummer = gyldigKommuneNummer( inputdata); 
-//           var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata + '&kommune=' + kommuneNummer, true, true, true, true); 
-// Ny syntaks i API støtter kommunenummer først i vegsystemreferansen (eller som egen parameter kommune=<kommunenummer>, men ikke begge deler)
-           var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
-
-        } else if (gyldigvegreferanse(inputdata) ) {
-            var veglenke = vegref_v2( 'veg.json?vegreferanse=' + inputdata, true, true, true, true  ); 
 
         } else {
                 if (inputdata.length == 0) {
