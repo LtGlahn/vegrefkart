@@ -123,6 +123,11 @@ hentVegreferanse  L417: vegref_v2( 'veg.json?vegreferanse=' + vegreferanse, true
 
 <div id="vegreferansevelger">
 
+    <h1>Advarsel - Fungerer ikke!</h1>
+
+Denne løsningen må oppgraderes med ny funksjonalitet i NVDB api LES. Inntil det blir gjort fungerer ikke denne løsningen.
+
+
 <h3>Søk vegreferanseverdi</h3>
 
 Skriv inn med ny eller gammel skrivemåte:<br> 
@@ -425,7 +430,16 @@ function hentVegreferanse(hvaslags) {
         inputdata = $("#inputvegref").val(); 
 
         if (inputdata.length > 7) {
-            var veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
+
+            // Gammelt eller nytt vegreferansesystem? 
+            var rensket = inputdata.replaceAll( /\s/g, ''); 
+            var veglenke = '';
+            if (rensket.toUpperCase().includes( 'HP')) { 
+                veglenke = hentVegreferanse( '/vegreferanseposisjon.json?vegreferanse=' + inputdata, true, true, true, true ); 
+             } else {
+                veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
+            }
+
 
         } else {
                 if (inputdata.length == 0) {
@@ -462,7 +476,8 @@ function hentVegreferanse(hvaslags) {
     }
     
     // Sikrer at dato er riktig formattert
-    dato = formatterdato( dato); 
+    // OVERFLØDIG????
+    // dato = formatterdato( dato); 
     
 
  //    $("#bruksanvisning1").empty();
