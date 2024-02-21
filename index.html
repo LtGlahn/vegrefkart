@@ -123,11 +123,13 @@ hentVegreferanse  L417: vegref_v2( 'veg.json?vegreferanse=' + vegreferanse, true
 
 <div id="vegreferansevelger">
 
-    <h1>Advarsel - Fungerer ikke! Bruk <a href="https://labs.vegdata.no/vegrefendring/">denne</a> i stedet!</h1>
+<h1>Nyhet 21.02.2024 - nå fungerer løsningen igjen!</h1>
 
-<p>Denne løsningen må oppgraderes med ny funksjonalitet i NVDB api LES. Inntil det blir gjort fungerer ikke denne løsningen.</p>
+<p>21.02.2024 - vi beklager at denne løsningen har vært utilgjengelig noen uker. Tjenestetilbudet til NVDB api LES var videreutviklet og 
+    logikken i denne løsningen måtte skrives noe om.
+</p>
 
-<p>I stedet kan du bruke løsningen <a href="https://labs.vegdata.no/vegrefendring/">Vegrefendring.</a> Den viser
+<p>Vi minner også om søsterløsningen <a href="https://labs.vegdata.no/vegrefendring/">Vegrefendring.</a> Den viser
 tidsutvikling for de vegreferansene som har "flyttet på seg", og er dermed mer komplisert å bruke og tolke. Men ved å huke av for 
 valget "Vis kolonnen for dagens vegsystemreferanse" så får du oversatt til dagens system. Siste gyldige dato 
 i det gamle systemet var 31. oktober 2022.</p>
@@ -321,7 +323,7 @@ function prettyprint_vegsystem( vegref ) {
 function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart ) {
     /* Henter vegreferanse  */
     
-    var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/" + param 
+    var veglenkeApi = "https://nvdbapiles-v3.atlas.vegvesen.no/" + param 
     // var veglenkeApi = "https://nvdbapiles-v3.atlas.vegvesen.no/veg.json?" + param
     
 
@@ -329,10 +331,10 @@ function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sen
     if ( param.includes( 'veg.json?veglenke=')) { 
         var splitarr1 = param.split( "=")[1].split("@")
         var vviUrl =  "https://visveginfo-static.opentns.org/RoadInfoService/GetRoadReferenceForNVDBReference?" 
-        vviUrl =  vviUrl +  "reflinkoid=" + splitarr1[1] + "&rellen=" + splitarr1[0]  +  "&ViewDate=2020-10-31"
+        vviUrl =  vviUrl +  "reflinkoid=" + splitarr1[1] + "&rellen=" + splitarr1[0]  +  "&ViewDate=2022-10-31"
         console.log( "Skal hente gammal vegref på veglenke:",  splitarr1[0], splitarr1[1])
         console.log( vviUrl )
-      } else if ( param.includes( "veg.json?vegreferanse=" )  ) { 
+      } else if ( param.includes( "vegreferanse=" )  ) { 
         console.log( "Skal slå opp på  vegreferanse-verdi", param)
         
         var vegrefGammal = param.split( "=")[1].replace(/\s+/g, ''); // Fjerner whitespace 
@@ -439,7 +441,7 @@ function hentVegreferanse(hvaslags) {
             var rensket = inputdata.replaceAll( /\s/g, ''); 
             var veglenke = '';
             if (rensket.toUpperCase().includes( 'HP')) { 
-                veglenke = hentVegreferanse( '/vegreferanseposisjon.json?vegreferanse=' + inputdata, true, true, true, true ); 
+                veglenke = vegref_v2( '/vegreferanseposisjon.json?vegreferanse=' + inputdata, true, true, true, true ); 
              } else {
                 veglenke = hentvegsystemref( 'veg.json?vegsystemreferanse=' + inputdata, true, true, true, true); 
             }
