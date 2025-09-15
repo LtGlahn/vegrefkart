@@ -233,7 +233,7 @@ function hentvegsystemref( param, oppdatervegref, oppdaterUrlParams, oppdaterkar
     */
     
     // var veglenkeApi = "https://www.vegvesen.no/nvdb/api/v2/veg.json?veglenke=" + 
-    var veglenkeApi = "https://nvdbapiles-v3.atlas.vegvesen.no/" + param
+    var veglenkeApi = "https://nvdbapiles.atlas.vegvesen.no/" + param
     
     var xhr2 = new XMLHttpRequest();
     xhr2.open("GET", veglenkeApi, true);
@@ -317,8 +317,8 @@ function prettyprint_vegsystem( vegref ) {
 function vegref_v2( param , oppdatervegref, oppdaterUrlParams, oppdaterkart, sentrerKart ) {
     /* Henter vegreferanse  */
     
-    var veglenkeApi = "https://nvdbapiles-v3.atlas.vegvesen.no/" + param 
-    // var veglenkeApi = "https://nvdbapiles-v3.atlas.vegvesen.no/veg.json?" + param
+    var veglenkeApi = "https://nvdbapiles.atlas.vegvesen.no/" + param 
+    // var veglenkeApi = "https://nvdbapiles.atlas.vegvesen.no/veg.json?" + param
     
 
     // Dekoder param-argumentet - skal vi hente veglenkesekvens eller spørre etter vegreferanseverdier? 
